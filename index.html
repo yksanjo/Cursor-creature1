@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>GLSL Shader Interactive Prototype</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<body>
+    <div id="container">
+        <div id="viz"></div>
+        
+        <div id="controls-and-code">
+            <div id="controls">
+                <h3>✨ Controls</h3>
+                <div class="fader-group">
+                    <label for="ringRadius">Ring Radius: <span id="radiusValue">0.5</span></label>
+                    <input type="range" id="ringRadius" min="0.1" max="1.0" step="0.01" value="0.5">
+                </div>
+                <div class="fader-group">
+                    <label for="glowIntensity">Glow Intensity: <span id="intensityValue">10.0</span></label>
+                    <input type="range" id="glowIntensity" min="1.0" max="30.0" step="1.0" value="10.0">
+                </div>
+                <div class="fader-group">
+                    <label for="speedFactor">Animation Speed: <span id="speedValue">0.5</span></label>
+                    <input type="range" id="speedFactor" min="0.0" max="2.0" step="0.1" value="0.5">
+                </div>
+                <div class="fader-group">
+                    <label for="colorShift">Color Shift: <span id="colorShiftValue">0.0</span></label>
+                    <input type="range" id="colorShift" min="0.0" max="10.0" step="0.1" value="0.0">
+                </div>
+                <div class="fader-group">
+                    <label for="ringCount">Ring Count: <span id="ringCountValue">5</span></label>
+                    <input type="range" id="ringCount" min="1" max="5" step="1" value="5">
+                </div>
+                <div class="fader-group">
+                    <label for="noiseAmount">Noise Amount: <span id="noiseAmountValue">0.5</span></label>
+                    <input type="range" id="noiseAmount" min="0.0" max="2.0" step="0.1" value="0.5">
+                </div>
+                
+                <div class="fader-group" style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed #444;">
+                    <h4 style="color: #4ec9b0; margin-bottom: 10px;">🎬 Animation Demos</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <button class="demo-btn" data-demo="bounce">Bounce Radius</button>
+                        <button class="demo-btn" data-demo="color">Color Shift</button>
+                        <button class="demo-btn" data-demo="timeline">Timeline</button>
+                        <button class="demo-btn" data-demo="parallel">Parallel</button>
+                        <button class="demo-btn" data-demo="pulse">Elastic Pulse</button>
+                        <button class="demo-btn" data-demo="speed">Speed Variation</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="code-display">
+                <div class="code-header">
+                    <h2>Fragment Shader</h2>
+                    <button id="copy-btn" class="copy-btn">Copy</button>
+                </div>
+                <pre><code class="language-glsl" id="shader-code">Loading Shader Code...</code></pre>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-glsl.min.js"></script>
+    <script src="script.js" type="module"></script>
+</body>
+</html>

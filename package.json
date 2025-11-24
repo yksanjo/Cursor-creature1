@@ -1,0 +1,24 @@
+{
+  "name": "webgl-shader-visualizer",
+  "version": "1.0.0",
+  "description": "Animated WebGL shader visualizer with glowing ring/particle effects",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server . -p 8080 -o -c-1",
+    "dev": "npx http-server . -p 8080 -o -c-1"
+  },
+  "keywords": [
+    "webgl",
+    "shader",
+    "glsl",
+    "three.js",
+    "visualization",
+    "creative-coding"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
+
