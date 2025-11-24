@@ -29,6 +29,8 @@ canvas {
     flex: 1;
     border: 1px solid #444;
     background: #000;
+    position: relative;
+    overflow: hidden;
 }
 
 #controls-and-code {

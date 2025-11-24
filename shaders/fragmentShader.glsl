@@ -16,6 +16,22 @@ uniform float u_color_shift;
 uniform float u_ring_count;
 uniform float u_noise_amount;
 
+// Food particle system uniforms
+uniform float u_hunger;
+uniform vec2 u_food_positions[50];
+uniform float u_food_active[50];
+uniform float u_food_scale[50];
+uniform int u_food_count;
+
+// Burst particle system uniforms
+uniform vec2 u_burst_positions[100];
+uniform float u_burst_active[100];
+uniform vec3 u_burst_colors[100];
+uniform int u_burst_count;
+
+// Ring positions (dynamic, for movement)
+uniform vec2 u_ring_positions[5];
+
 varying vec2 vUv;
 
 #define PI 3.14159265359
@@ -159,55 +175,46 @@ float map(vec2 p) {
     float angle = u_time * u_speed;
     vec2 baseUV = rotate2D(uv, angle);
     
-    // Create multiple rings
+    // Create multiple rings using dynamic positions
     float dist = 1000.0;
     
     float ringCount = floor(u_ring_count);
     
-    // Central rings (original design)
-    for (float i = 0.0; i < 3.0; i += 1.0) {
+    // All rings use dynamic positions (they move to fetch food)
+    for (float i = 0.0; i < 5.0; i += 1.0) {
         if (i >= ringCount) break;
         
-        float ringRadius = u_radius * (0.3 + i * 0.2);
-        float ringThickness = 0.03 + i * 0.01;
+        // Get ring position from uniform (set by JavaScript)
+        vec2 ringCenter = u_ring_positions[int(i)];
         
-        // Rotate each ring at different speeds
-        vec2 ringUV = rotate2D(baseUV, u_time * u_speed * (0.5 + i * 0.3));
+        // Calculate ring properties based on index
+        float ringRadius = u_radius * (0.3 + i * 0.2);
+        if (i >= 3.0) {
+            // Adjust radius for rings 4 and 5
+            if (i == 3.0) ringRadius = u_radius * 0.25;
+            if (i == 4.0) ringRadius = u_radius * 0.2;
+        }
+        
+        float ringThickness = 0.03 + i * 0.01;
+        if (i >= 3.0) {
+            if (i == 3.0) ringThickness = 0.025;
+            if (i == 4.0) ringThickness = 0.02;
+        }
+        
+        // Calculate position relative to ring center
+        vec2 ringUV = uv - ringCenter;
+        
+        // Rotate each ring at different speeds (keeps the spinning effect)
+        float rotSpeed = u_time * u_speed * (0.5 + i * 0.3);
+        if (i == 3.0) rotSpeed = u_time * u_speed * 0.8;
+        if (i == 4.0) rotSpeed = -u_time * u_speed * 0.6;
+        
+        ringUV = rotate2D(ringUV, rotSpeed);
+        
         float ringDist = sdRing(ringUV, ringRadius, ringThickness);
         
         // Blend rings together
         dist = smin(dist, ringDist, 0.1);
-    }
-    
-    // Two additional moving rings
-    if (ringCount >= 4.0) {
-        // First moving ring - orbits in a circle
-        float orbitRadius1 = 0.4;
-        float orbitSpeed1 = u_speed * 0.3;
-        vec2 orbitPos1 = vec2(
-            cos(u_time * orbitSpeed1) * orbitRadius1,
-            sin(u_time * orbitSpeed1) * orbitRadius1
-        );
-        
-        vec2 movingUV1 = uv - orbitPos1;
-        movingUV1 = rotate2D(movingUV1, u_time * u_speed * 0.8);
-        float movingRing1 = sdRing(movingUV1, u_radius * 0.25, 0.025);
-        dist = smin(dist, movingRing1, 0.1);
-    }
-    
-    if (ringCount >= 5.0) {
-        // Second moving ring - orbits in opposite direction with different pattern
-        float orbitRadius2 = 0.5;
-        float orbitSpeed2 = u_speed * 0.4;
-        vec2 orbitPos2 = vec2(
-            cos(u_time * orbitSpeed2 + PI) * orbitRadius2,
-            sin(u_time * orbitSpeed2 * 1.3) * orbitRadius2 * 0.7
-        );
-        
-        vec2 movingUV2 = uv - orbitPos2;
-        movingUV2 = rotate2D(movingUV2, -u_time * u_speed * 0.6);
-        float movingRing2 = sdRing(movingUV2, u_radius * 0.2, 0.02);
-        dist = smin(dist, movingRing2, 0.1);
     }
     
     return dist;
@@ -272,50 +279,50 @@ void main() {
     // Apply glow and core to rings
     vec3 ringGlow = ringColor * (finalGlow * 0.8 + core * 1.5);
     
+    // HUNGER EFFECTS ON RINGS (enhances existing rings when hungry)
+    float hungerPulse = sin(u_time * 5.0) * 0.5 + 0.5;
+    float hungerEffect = smoothstep(50.0, 0.0, u_hunger);
+    
+    if(hungerEffect > 0.0) {
+        // Enhance ring glow when hungry
+        float hungerGlowBoost = 1.0 + hungerEffect * 0.8 * hungerPulse;
+        ringGlow *= hungerGlowBoost;
+        
+        // Add orange/red tint when very hungry
+        vec3 hungerColor = mix(ringColor, vec3(1.0, 0.5, 0.2), hungerEffect * hungerPulse * 0.4);
+        ringGlow = mix(ringGlow, hungerColor * (finalGlow * 0.8 + core * 1.5) * hungerGlowBoost, hungerEffect * 0.3);
+    }
+    
     // Add rings on top of space background
     color += ringGlow;
     
-    // Add moving rings with their own colors
+    // Additional colored rings for rings 4 and 5 (using dynamic positions)
     float ringCount = floor(u_ring_count);
     
     if (ringCount >= 4.0) {
-        // First moving ring
-        float orbitRadius1 = 0.4;
-        float orbitSpeed1 = u_speed * 0.3;
-        vec2 orbitPos1 = vec2(
-            cos(u_time * orbitSpeed1) * orbitRadius1,
-            sin(u_time * orbitSpeed1) * orbitRadius1
-        );
-        
-        vec2 movingUV1 = uv - orbitPos1;
+        // First additional ring (ring 4) - cyan/blue color
+        vec2 ringCenter4 = u_ring_positions[3];
+        vec2 movingUV1 = uv - ringCenter4;
         movingUV1 = rotate2D(movingUV1, u_time * u_speed * 0.8);
         float movingRing1Dist = sdRing(movingUV1, u_radius * 0.25, 0.025);
         
         float movingGlow1 = exp(-abs(movingRing1Dist) * u_glow_intensity);
         float movingCore1 = 1.0 - smoothstep(0.0, 0.02, abs(movingRing1Dist));
         
-        // Different color for moving ring 1 (more cyan/blue)
         vec3 movingColor1 = vec3(0.2, 0.8, 1.0) * (1.0 + 0.5 * sin(t * 2.0));
         color += movingColor1 * (movingGlow1 * 0.8 + movingCore1 * 1.2);
     }
     
     if (ringCount >= 5.0) {
-        // Second moving ring
-        float orbitRadius2 = 0.5;
-        float orbitSpeed2 = u_speed * 0.4;
-        vec2 orbitPos2 = vec2(
-            cos(u_time * orbitSpeed2 + PI) * orbitRadius2,
-            sin(u_time * orbitSpeed2 * 1.3) * orbitRadius2 * 0.7
-        );
-        
-        vec2 movingUV2 = uv - orbitPos2;
+        // Second additional ring (ring 5) - pink/magenta color
+        vec2 ringCenter5 = u_ring_positions[4];
+        vec2 movingUV2 = uv - ringCenter5;
         movingUV2 = rotate2D(movingUV2, -u_time * u_speed * 0.6);
         float movingRing2Dist = sdRing(movingUV2, u_radius * 0.2, 0.02);
         
         float movingGlow2 = exp(-abs(movingRing2Dist) * u_glow_intensity);
         float movingCore2 = 1.0 - smoothstep(0.0, 0.02, abs(movingRing2Dist));
         
-        // Different color for moving ring 2 (more pink/magenta)
         vec3 movingColor2 = vec3(1.0, 0.3, 0.6) * (1.0 + 0.5 * sin(t * 1.5 + PI));
         color += movingColor2 * (movingGlow2 * 0.8 + movingCore2 * 1.2);
     }
@@ -325,6 +332,45 @@ void main() {
     float sparkleNoise = noise(sparkleUV + u_time);
     float sparkle = step(0.95, sparkleNoise) * step(abs(d), 0.1);
     color += vec3(1.0, 1.0, 1.0) * sparkle * 0.8;
+    
+    // FOOD PARTICLE SYSTEM (added on top, doesn't affect existing graphics)
+    vec2 uv_normalized = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+    
+    for(int i = 0; i < 50; i++) {
+        if(i >= u_food_count) break;
+        if(u_food_active[i] < 0.1) continue;
+        
+        vec2 foodPos = u_food_positions[i];
+        float dist = length(uv_normalized - foodPos);
+        float scale = u_food_scale[i];
+        
+        // Pulsing food glow
+        float pulse = sin(u_time * 4.0 + float(i)) * 0.3 + 0.7;
+        float foodGlow = exp(-dist * 25.0 / scale) * 0.8 * pulse;
+        vec3 foodColor = vec3(1.0, 0.85, 0.3); // Golden food
+        
+        // Add sparkle effect to food
+        float foodSparkle = smoothstep(0.04 * scale, 0.0, dist) * pulse;
+        foodColor = mix(foodColor, vec3(1.0, 1.0, 0.8), foodSparkle);
+        
+        color += foodColor * foodGlow * u_food_active[i];
+        
+        // Food core
+        float foodCore = smoothstep(0.025 * scale, 0.0, dist);
+        color += foodColor * foodCore * u_food_active[i] * 1.5;
+    }
+    
+    // BURST PARTICLES (eating effect)
+    for(int i = 0; i < 100; i++) {
+        if(i >= u_burst_count) break;
+        if(u_burst_active[i] < 0.1) continue;
+        
+        vec2 burstPos = u_burst_positions[i];
+        float dist = length(uv_normalized - burstPos);
+        
+        float burstGlow = exp(-dist * 40.0) * u_burst_active[i];
+        color += u_burst_colors[i] * burstGlow * 2.0;
+    }
     
     // Tone mapping and gamma correction
     color = pow(color, vec3(1.0 / 2.2));
